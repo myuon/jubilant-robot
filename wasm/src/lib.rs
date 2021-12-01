@@ -21,24 +21,12 @@ use web_sys::HtmlCanvasElement;
 use crate::utils::console_log;
 
 impl TDrawingContext for CanvasRenderingContext2d {
-    fn begin_path(&self) {
-        self.begin_path()
-    }
-
-    fn stroke(&self) {
-        self.stroke()
-    }
-
-    fn move_to(&self, x: f64, y: f64) {
-        self.move_to(x, y)
-    }
-
-    fn line_to(&self, x: f64, y: f64) {
-        self.line_to(x, y)
-    }
-
     fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64) {
         self.clear_rect(x, y, w, h)
+    }
+
+    fn rectangle(&self, x: f64, y: f64, w: f64, h: f64) {
+        self.stroke_rect(x, y, w, h);
     }
 }
 

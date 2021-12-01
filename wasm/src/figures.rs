@@ -1,9 +1,6 @@
 pub trait TDrawingContext {
-    fn begin_path(&self);
-    fn stroke(&self);
-    fn move_to(&self, x: f64, y: f64);
-    fn line_to(&self, x: f64, y: f64);
     fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64);
+    fn rectangle(&self, x: f64, y: f64, w: f64, h: f64);
 }
 
 pub trait TCanvas {
@@ -26,13 +23,12 @@ impl Rectangle {
     }
 
     pub fn draw(&self, ctx: &impl TDrawingContext) {
-        ctx.begin_path();
-        ctx.move_to(self.from.0, self.from.1);
-        ctx.line_to(self.to.0, self.from.1);
-        ctx.line_to(self.to.0, self.to.1);
-        ctx.line_to(self.from.0, self.to.1);
-        ctx.line_to(self.from.0, self.from.1);
-        ctx.stroke();
+        ctx.rectangle(
+            self.from.0,
+            self.from.1,
+            self.to.0 - self.from.0,
+            self.to.1 - self.from.1,
+        );
     }
 
     pub fn clear(&self, ctx: &impl TDrawingContext) {
