@@ -43,6 +43,8 @@ function App() {
           </a>
         </p>
       </header>
+
+      <canvas id="canvas" width={1024} height={720}></canvas>
     </div>
   );
 }
