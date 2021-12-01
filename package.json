@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:gh": "tsc && vite build --base=jubiliant-robot",
+    "build:gh": "tsc && vite build --base=jubilant-robot",
     "serve": "vite preview",
     "rsw:build": "rsw && yarn build",
     "rsw:build:gh": "rsw && yarn build:gh"
