@@ -4,8 +4,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:gh": "tsc && vite build --base=jubiliant-robot",
     "serve": "vite preview",
-    "rsw:build": "rsw && yarn build"
+    "rsw:build": "rsw && yarn build",
+    "rsw:build:gh": "rsw && yarn build:gh"
   },
   "dependencies": {
     "react": "^17.0.0",
