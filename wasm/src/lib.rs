@@ -1,6 +1,8 @@
 mod utils;
 
+use std::cell::Cell;
 use std::f64;
+use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -10,44 +12,66 @@ use wasm_bindgen::JsCast;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+#[derive(Default, Clone, Copy)]
+struct DragAndDropEvent {
+    from: (f64, f64),
+    to: (f64, f64),
+}
+
 #[wasm_bindgen(start)]
-pub fn start() {
+pub fn start() -> Result<(), JsValue> {
     let document = web_sys::window().unwrap().document().unwrap();
     let canvas = document.get_element_by_id("canvas").unwrap();
-    let canvas: web_sys::HtmlCanvasElement = canvas
-        .dyn_into::<web_sys::HtmlCanvasElement>()
-        .map_err(|_| ())
-        .unwrap();
+    let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
 
     let context = canvas
         .get_context("2d")
         .unwrap()
         .unwrap()
-        .dyn_into::<web_sys::CanvasRenderingContext2d>()
-        .unwrap();
+        .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
 
-    context.begin_path();
+    let context = Rc::new(context);
+    let dnd = Rc::new(Cell::new(DragAndDropEvent::default()));
 
-    // Draw the outer circle.
-    context
-        .arc(75.0, 75.0, 50.0, 0.0, f64::consts::PI * 2.0)
-        .unwrap();
+    {
+        let dnd = dnd.clone();
+        let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+            let mut d = dnd.get();
+            d.from = (event.offset_x() as f64, event.offset_y() as f64);
+            dnd.set(d);
+        }) as Box<dyn FnMut(_)>);
+        canvas.add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())?;
+        closure.forget();
+    }
+    {
+        let closure =
+            Closure::wrap(Box::new(move |_event: web_sys::MouseEvent| {}) as Box<dyn FnMut(_)>);
+        canvas.add_event_listener_with_callback("mousemove", closure.as_ref().unchecked_ref())?;
+        closure.forget();
+    }
+    {
+        let dnd = dnd.clone();
+        let context = context.clone();
+        let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+            let mut d = dnd.get();
+            d.to = (event.offset_x() as f64, event.offset_y() as f64);
+            dnd.set(d);
 
-    // Draw the mouth.
-    context.move_to(110.0, 75.0);
-    context.arc(75.0, 75.0, 35.0, 0.0, f64::consts::PI).unwrap();
+            let d = dnd.get();
+            context.begin_path();
+            context.move_to(d.from.0, d.from.1);
 
-    // Draw the left eye.
-    context.move_to(65.0, 65.0);
-    context
-        .arc(60.0, 65.0, 5.0, 0.0, f64::consts::PI * 2.0)
-        .unwrap();
+            // draw a rectangle
+            context.line_to(d.to.0, d.from.1);
+            context.line_to(d.to.0, d.to.1);
+            context.line_to(d.from.0, d.to.1);
+            context.line_to(d.from.0, d.from.1);
 
-    // Draw the right eye.
-    context.move_to(95.0, 65.0);
-    context
-        .arc(90.0, 65.0, 5.0, 0.0, f64::consts::PI * 2.0)
-        .unwrap();
+            context.stroke();
+        }) as Box<dyn FnMut(_)>);
+        canvas.add_event_listener_with_callback("mouseup", closure.as_ref().unchecked_ref())?;
+        closure.forget();
+    }
 
-    context.stroke();
+    Ok(())
 }
