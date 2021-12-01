@@ -10,16 +10,6 @@ use wasm_bindgen::JsCast;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
-}
-
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, wasm! Yes!");
-}
-
 #[wasm_bindgen(start)]
 pub fn start() {
     let document = web_sys::window().unwrap().document().unwrap();
