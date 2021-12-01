@@ -1,6 +1,12 @@
 mod figures;
 mod utils;
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
 use figures::Rectangle;
 use figures::TCanvas;
 use figures::TDrawingContext;
@@ -11,6 +17,8 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::CanvasRenderingContext2d;
 use web_sys::HtmlCanvasElement;
+
+use crate::utils::console_log;
 
 impl TDrawingContext for CanvasRenderingContext2d {
     fn begin_path(&self) {
@@ -66,12 +74,6 @@ impl TCanvas for PaintingCanvas {
     }
 }
 
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
-// allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
 #[derive(Default, Clone, Copy)]
 struct DragAndDropEvent {
     from: (f64, f64),
@@ -87,6 +89,8 @@ impl DragAndDropEvent {
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
+    console_log!("Application initialized.");
+
     let control_canvas = Rc::new(PaintingCanvas::create_by_element_id("control-canvas")?);
     let paint_canvas = Rc::new(PaintingCanvas::create_by_element_id("paint-canvas")?);
 
