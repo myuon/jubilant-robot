@@ -1,11 +1,31 @@
 mod figures;
 mod utils;
 
+use figures::TDrawingContext;
 use std::cell::Cell;
 use std::f64;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use web_sys::CanvasRenderingContext2d;
+
+impl TDrawingContext for CanvasRenderingContext2d {
+    fn begin_path(&self) {
+        self.begin_path()
+    }
+
+    fn stroke(&self) {
+        self.stroke()
+    }
+
+    fn move_to(&self, x: f64, y: f64) {
+        self.move_to(x, y)
+    }
+
+    fn line_to(&self, x: f64, y: f64) {
+        self.line_to(x, y)
+    }
+}
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -66,17 +86,8 @@ pub fn start() -> Result<(), JsValue> {
             d.to = (event.offset_x() as f64, event.offset_y() as f64);
             dnd.set(d);
 
-            let d = dnd.get().into_rectangle();
-            context.begin_path();
-            context.move_to(d.from.0, d.from.1);
-
-            // draw a rectangle
-            context.line_to(d.to.0, d.from.1);
-            context.line_to(d.to.0, d.to.1);
-            context.line_to(d.from.0, d.to.1);
-            context.line_to(d.from.0, d.from.1);
-
-            context.stroke();
+            let rect = dnd.get().into_rectangle();
+            rect.draw(&*context);
         }) as Box<dyn FnMut(_)>);
         canvas.add_event_listener_with_callback("mouseup", closure.as_ref().unchecked_ref())?;
         closure.forget();

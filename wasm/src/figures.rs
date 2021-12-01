@@ -1,3 +1,10 @@
+pub trait TDrawingContext {
+    fn begin_path(&self);
+    fn stroke(&self);
+    fn move_to(&self, x: f64, y: f64);
+    fn line_to(&self, x: f64, y: f64);
+}
+
 #[derive(Clone)]
 pub struct Rectangle {
     pub from: (f64, f64),
@@ -11,5 +18,15 @@ impl Rectangle {
 
     pub fn contains(&self, x: f64, y: f64) -> bool {
         self.from.0 <= x && x <= self.to.0 && self.from.1 <= y && y <= self.to.1
+    }
+
+    pub fn draw(&self, ctx: &impl TDrawingContext) {
+        ctx.begin_path();
+        ctx.move_to(self.from.0, self.from.1);
+        ctx.line_to(self.to.0, self.from.1);
+        ctx.line_to(self.to.0, self.to.1);
+        ctx.line_to(self.from.0, self.to.1);
+        ctx.line_to(self.from.0, self.from.1);
+        ctx.stroke();
     }
 }
