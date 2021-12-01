@@ -1,6 +1,9 @@
+// figuresの列からcontextの命令列への変換は最適化入れられそう
 pub trait TDrawingContext {
     fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64);
     fn rectangle(&self, x: f64, y: f64, w: f64, h: f64);
+    fn set_stroke_dashed(&self, patterns: Vec<i32>);
+    fn reset_stroke(&self);
 }
 
 pub trait TCanvas {

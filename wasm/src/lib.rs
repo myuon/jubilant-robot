@@ -10,6 +10,7 @@ extern "C" {
 use figures::Rectangle;
 use figures::TCanvas;
 use figures::TDrawingContext;
+use js_sys::Array;
 use std::cell::Cell;
 use std::f64;
 use std::rc::Rc;
@@ -27,6 +28,18 @@ impl TDrawingContext for CanvasRenderingContext2d {
 
     fn rectangle(&self, x: f64, y: f64, w: f64, h: f64) {
         self.stroke_rect(x, y, w, h);
+    }
+
+    fn set_stroke_dashed(&self, patterns: Vec<i32>) {
+        let arr = Array::new();
+        for p in patterns {
+            arr.push(&JsValue::from_f64(p as f64));
+        }
+        self.set_line_dash(&arr).unwrap();
+    }
+
+    fn reset_stroke(&self) {
+        self.set_line_dash(&Array::new()).unwrap();
     }
 }
 
@@ -112,7 +125,9 @@ pub fn start() -> Result<(), JsValue> {
                     let rect =
                         Rectangle::new(d.from, (event.offset_x() as f64, event.offset_y() as f64));
 
+                    control_canvas.context.set_stroke_dashed(vec![5, 5]);
                     rect.draw(&control_canvas.context);
+                    control_canvas.context.reset_stroke();
                 }
             }) as Box<dyn FnMut(_)>)
         };
