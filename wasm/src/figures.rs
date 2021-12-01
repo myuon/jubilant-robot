@@ -6,6 +6,10 @@ pub trait TDrawingContext {
     fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64);
 }
 
+pub trait TCanvas {
+    fn clear(&self);
+}
+
 #[derive(Clone)]
 pub struct Rectangle {
     pub from: (f64, f64),

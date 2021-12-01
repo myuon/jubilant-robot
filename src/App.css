@@ -7,9 +7,9 @@ canvas {
   position: absolute;
 }
 
-#paint-layer {
+#paint-canvas {
   z-index: 1;
 }
-#control-layer {
+#control-canvas {
   z-index: 2;
 }
