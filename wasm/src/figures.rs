@@ -3,6 +3,7 @@ pub trait TDrawingContext {
     fn stroke(&self);
     fn move_to(&self, x: f64, y: f64);
     fn line_to(&self, x: f64, y: f64);
+    fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64);
 }
 
 #[derive(Clone)]
@@ -28,5 +29,14 @@ impl Rectangle {
         ctx.line_to(self.from.0, self.to.1);
         ctx.line_to(self.from.0, self.from.1);
         ctx.stroke();
+    }
+
+    pub fn clear(&self, ctx: &impl TDrawingContext) {
+        ctx.clear_rect(
+            self.from.0,
+            self.from.1,
+            self.to.0 - self.from.0,
+            self.to.1 - self.from.1,
+        );
     }
 }
