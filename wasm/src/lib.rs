@@ -1,3 +1,4 @@
+mod figures;
 mod utils;
 
 use std::cell::Cell;
@@ -18,6 +19,12 @@ struct DragAndDropEvent {
     to: (f64, f64),
 }
 
+impl DragAndDropEvent {
+    fn into_rectangle(self) -> figures::Rectangle {
+        figures::Rectangle::new(self.from, self.to)
+    }
+}
+
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
     let document = web_sys::window().unwrap().document().unwrap();
@@ -36,8 +43,10 @@ pub fn start() -> Result<(), JsValue> {
     {
         let dnd = dnd.clone();
         let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+            let point = (event.offset_x() as f64, event.offset_y() as f64);
+
             let mut d = dnd.get();
-            d.from = (event.offset_x() as f64, event.offset_y() as f64);
+            d.from = point;
             dnd.set(d);
         }) as Box<dyn FnMut(_)>);
         canvas.add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())?;
@@ -57,7 +66,7 @@ pub fn start() -> Result<(), JsValue> {
             d.to = (event.offset_x() as f64, event.offset_y() as f64);
             dnd.set(d);
 
-            let d = dnd.get();
+            let d = dnd.get().into_rectangle();
             context.begin_path();
             context.move_to(d.from.0, d.from.1);
 
