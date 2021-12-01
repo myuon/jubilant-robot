@@ -8,6 +8,7 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::CanvasRenderingContext2d;
+use web_sys::HtmlCanvasElement;
 
 impl TDrawingContext for CanvasRenderingContext2d {
     fn begin_path(&self) {
@@ -45,10 +46,11 @@ impl DragAndDropEvent {
     }
 }
 
-#[wasm_bindgen(start)]
-pub fn start() -> Result<(), JsValue> {
+fn get_canvas_context(
+    element_id: &str,
+) -> Result<(HtmlCanvasElement, CanvasRenderingContext2d), JsValue> {
     let document = web_sys::window().unwrap().document().unwrap();
-    let canvas = document.get_element_by_id("control-layer").unwrap();
+    let canvas = document.get_element_by_id(element_id).unwrap();
     let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
 
     let context = canvas
@@ -57,7 +59,17 @@ pub fn start() -> Result<(), JsValue> {
         .unwrap()
         .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
 
-    let context = Rc::new(context);
+    Ok((canvas, context))
+}
+
+#[wasm_bindgen(start)]
+pub fn start() -> Result<(), JsValue> {
+    let (canvas, control_context) = get_canvas_context("control-layer")?;
+    let control_context = Rc::new(control_context);
+
+    let (_, paint_context) = get_canvas_context("paint-layer")?;
+    let paint_context = Rc::new(paint_context);
+
     let dnd = Rc::new(Cell::new(DragAndDropEvent::default()));
 
     {
@@ -80,7 +92,7 @@ pub fn start() -> Result<(), JsValue> {
     }
     {
         let dnd = dnd.clone();
-        let context = context.clone();
+        let context = paint_context.clone();
         let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
             let mut d = dnd.get();
             d.to = (event.offset_x() as f64, event.offset_y() as f64);
