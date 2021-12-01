@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import logo from "./logo.svg";
 import "./App.css";
-import init, { greet } from "../wasm/pkg";
+import init, { greet } from "wasm";
 
 function App() {
   const [count, setCount] = useState(0);
