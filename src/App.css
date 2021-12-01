@@ -1,3 +1,15 @@
-canvas {
+main {
   border: 1px solid #444;
+  position: relative;
+}
+
+canvas {
+  position: absolute;
+}
+
+#paint-layer {
+  z-index: 1;
+}
+#control-layer {
+  z-index: 2;
 }

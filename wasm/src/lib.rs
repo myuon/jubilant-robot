@@ -48,7 +48,7 @@ impl DragAndDropEvent {
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
     let document = web_sys::window().unwrap().document().unwrap();
-    let canvas = document.get_element_by_id("canvas").unwrap();
+    let canvas = document.get_element_by_id("control-layer").unwrap();
     let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
 
     let context = canvas

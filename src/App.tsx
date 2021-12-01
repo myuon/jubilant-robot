@@ -7,7 +7,12 @@ function App() {
     init();
   }, []);
 
-  return <canvas id="canvas" width={1024} height={720}></canvas>;
+  return (
+    <main style={{ width: 1024, height: 768 }}>
+      <canvas id="control-layer" width={1024} height={768} />
+      <canvas id="paint-layer" width={1024} height={768} />
+    </main>
+  );
 }
 
 export default App;
