@@ -1,6 +1,4 @@
-mod event;
-mod figures;
-mod renderer;
+mod model;
 mod utils;
 
 #[wasm_bindgen]
@@ -9,12 +7,11 @@ extern "C" {
     fn log(s: &str);
 }
 
-use figures::Figure;
-use figures::Rectangle;
-use figures::TCanvas;
-use figures::TDrawingContext;
 use js_sys::Array;
-use renderer::Renderer;
+use model::figures::Figure;
+use model::figures::TCanvas;
+use model::figures::TDrawingContext;
+use model::renderer::Renderer;
 use std::cell::Cell;
 use std::f64;
 use std::rc::Rc;
@@ -23,8 +20,9 @@ use wasm_bindgen::JsCast;
 use web_sys::CanvasRenderingContext2d;
 use web_sys::HtmlCanvasElement;
 
-use crate::event::DragAndDropEvent;
+use crate::model::figures::Rectangle;
 use crate::utils::console_log;
+use crate::utils::event::DragAndDropEvent;
 
 impl TDrawingContext for CanvasRenderingContext2d {
     fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64) {
@@ -84,13 +82,14 @@ impl TCanvas for PaintingCanvas {
         );
     }
 
-    fn register(&self, figure: figures::Figure) {
+    fn register(&self, figure: Figure) {
         let mut figs = self.figures.take();
         figs.push(figure);
         self.figures.set(figs);
     }
 }
 
+#[derive(Clone)]
 struct App {
     control_canvas: Rc<PaintingCanvas>,
     paint_canvas: Rc<PaintingCanvas>,
@@ -114,13 +113,12 @@ pub fn start() -> Result<(), JsValue> {
     let control_canvas = Rc::new(PaintingCanvas::create_by_element_id("control-canvas")?);
     let paint_canvas = Rc::new(PaintingCanvas::create_by_element_id("paint-canvas")?);
 
-    let app = App::new(control_canvas.clone(), paint_canvas.clone());
+    let app = App::new(control_canvas, paint_canvas);
 
     let dnd = Rc::new(Cell::new(DragAndDropEvent::default()));
 
     {
         let dnd = dnd.clone();
-        let control_canvas = control_canvas.clone();
         let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
             let point = (event.offset_x() as f64, event.offset_y() as f64);
 
@@ -129,14 +127,14 @@ pub fn start() -> Result<(), JsValue> {
             d.dragging = true;
             dnd.set(d);
         }) as Box<dyn FnMut(_)>);
-        control_canvas
+        app.control_canvas
             .canvas
             .add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())?;
         closure.forget();
     }
     {
         let dnd = dnd.clone();
-        let control_canvas = control_canvas.clone();
+        let control_canvas = app.control_canvas.clone();
         let closure = {
             let control_canvas = control_canvas.clone();
             Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
@@ -152,31 +150,28 @@ pub fn start() -> Result<(), JsValue> {
                 }
             }) as Box<dyn FnMut(_)>)
         };
-        control_canvas
+        app.control_canvas
             .canvas
             .add_event_listener_with_callback("mousemove", closure.as_ref().unchecked_ref())?;
         closure.forget();
     }
     {
         let dnd = dnd.clone();
-        let control_canvas = control_canvas.clone();
-        let paint_canvas = paint_canvas.clone();
         let closure = {
-            let paint_canvas = paint_canvas.clone();
-            let control_canvas = control_canvas.clone();
+            let app = app.clone();
             Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
                 let mut d = dnd.get();
                 d.to = (event.offset_x() as f64, event.offset_y() as f64);
                 d.dragging = false;
                 dnd.set(d);
 
-                app.renderer.on_mouse_dnd(d, &paint_canvas.context);
+                app.renderer.on_mouse_dnd(d, &app.paint_canvas.context);
 
                 // イベントが確定したらcontrol layerは消去する
-                control_canvas.clear();
+                app.control_canvas.clear();
             }) as Box<dyn FnMut(_)>)
         };
-        control_canvas
+        app.control_canvas
             .canvas
             .add_event_listener_with_callback("mouseup", closure.as_ref().unchecked_ref())?;
         closure.forget();

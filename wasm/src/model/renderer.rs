@@ -1,9 +1,8 @@
 use std::cell::Cell;
 
-use crate::{
-    event::DragAndDropEvent,
-    figures::{Figure, Rectangle, TDrawingContext},
-};
+use crate::utils::event::DragAndDropEvent;
+
+use super::figures::{Figure, Rectangle, TDrawingContext};
 
 pub struct Renderer {
     figures: Cell<Vec<Figure>>,
