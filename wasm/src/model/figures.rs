@@ -11,11 +11,20 @@ pub trait TCanvas {
     fn register(&self, figure: Figure);
 }
 
+#[derive(Debug, Clone)]
 pub enum Figure {
     Rectangle(Rectangle),
 }
 
-#[derive(Clone)]
+impl Figure {
+    pub fn contains(&self, x: f64, y: f64) -> bool {
+        match self {
+            Figure::Rectangle(rect) => rect.contains(x, y),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Rectangle {
     pub from: (f64, f64),
     pub to: (f64, f64),

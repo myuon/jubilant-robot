@@ -1,17 +1,20 @@
-use std::cell::Cell;
+use std::cell::RefCell;
 
-use crate::utils::event::DragAndDropEvent;
+use crate::utils::{
+    console_log,
+    event::{DragAndDropEvent, MouseUpEvent},
+};
 
 use super::figures::{Figure, Rectangle, TDrawingContext};
 
 pub struct Renderer {
-    figures: Cell<Vec<Figure>>,
+    figures: RefCell<Vec<Figure>>,
 }
 
 impl Renderer {
     pub fn new() -> Self {
         Renderer {
-            figures: Cell::new(vec![]),
+            figures: RefCell::new(vec![]),
         }
     }
 
@@ -26,5 +29,13 @@ impl Renderer {
         rect.draw(context);
 
         self.register(Figure::Rectangle(rect));
+    }
+
+    pub fn on_mouse_up(&self, event: MouseUpEvent) {
+        for fig in &*self.figures.borrow() {
+            if fig.contains(event.at.0, event.at.1) {
+                console_log!("{:?}", fig);
+            }
+        }
     }
 }

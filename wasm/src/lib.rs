@@ -23,6 +23,7 @@ use web_sys::HtmlCanvasElement;
 use crate::model::figures::Rectangle;
 use crate::utils::console_log;
 use crate::utils::event::DragAndDropEvent;
+use crate::utils::event::MouseUpEvent;
 
 impl TDrawingContext for CanvasRenderingContext2d {
     fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64) {
@@ -169,6 +170,10 @@ pub fn start() -> Result<(), JsValue> {
 
                 // イベントが確定したらcontrol layerは消去する
                 app.control_canvas.clear();
+
+                app.renderer.on_mouse_up(MouseUpEvent {
+                    at: (event.offset_x() as f64, event.offset_y() as f64),
+                })
             }) as Box<dyn FnMut(_)>)
         };
         app.control_canvas
