@@ -8,6 +8,11 @@ pub trait TDrawingContext {
 
 pub trait TCanvas {
     fn clear(&self);
+    fn register(&self, figure: Figure);
+}
+
+pub enum Figure {
+    Rectangle(Rectangle),
 }
 
 #[derive(Clone)]

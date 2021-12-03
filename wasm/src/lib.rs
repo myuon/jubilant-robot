@@ -7,6 +7,7 @@ extern "C" {
     fn log(s: &str);
 }
 
+use figures::Figure;
 use figures::Rectangle;
 use figures::TCanvas;
 use figures::TDrawingContext;
@@ -46,6 +47,7 @@ impl TDrawingContext for CanvasRenderingContext2d {
 pub struct PaintingCanvas {
     canvas: HtmlCanvasElement,
     context: CanvasRenderingContext2d,
+    figures: Cell<Vec<Figure>>,
 }
 
 impl PaintingCanvas {
@@ -60,7 +62,11 @@ impl PaintingCanvas {
             .unwrap()
             .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
 
-        Ok(PaintingCanvas { canvas, context })
+        Ok(PaintingCanvas {
+            canvas,
+            context,
+            figures: Cell::new(vec![]),
+        })
     }
 }
 
@@ -72,6 +78,12 @@ impl TCanvas for PaintingCanvas {
             self.canvas.width() as f64,
             self.canvas.height() as f64,
         );
+    }
+
+    fn register(&self, figure: figures::Figure) {
+        let mut figs = self.figures.take();
+        figs.push(figure);
+        self.figures.set(figs);
     }
 }
 
@@ -141,6 +153,7 @@ pub fn start() -> Result<(), JsValue> {
         let control_canvas = control_canvas.clone();
         let paint_canvas = paint_canvas.clone();
         let closure = {
+            let paint_canvas = paint_canvas.clone();
             let control_canvas = control_canvas.clone();
             Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
                 let mut d = dnd.get();
@@ -150,6 +163,7 @@ pub fn start() -> Result<(), JsValue> {
 
                 let rect = dnd.get().into_rectangle();
                 rect.draw(&paint_canvas.context);
+                paint_canvas.register(Figure::Rectangle(rect));
 
                 // イベントが確定したらcontrol layerは消去する
                 control_canvas.clear();
