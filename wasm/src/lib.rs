@@ -1,4 +1,6 @@
+mod event;
 mod figures;
+mod renderer;
 mod utils;
 
 #[wasm_bindgen]
@@ -12,6 +14,7 @@ use figures::Rectangle;
 use figures::TCanvas;
 use figures::TDrawingContext;
 use js_sys::Array;
+use renderer::Renderer;
 use std::cell::Cell;
 use std::f64;
 use std::rc::Rc;
@@ -20,6 +23,7 @@ use wasm_bindgen::JsCast;
 use web_sys::CanvasRenderingContext2d;
 use web_sys::HtmlCanvasElement;
 
+use crate::event::DragAndDropEvent;
 use crate::utils::console_log;
 
 impl TDrawingContext for CanvasRenderingContext2d {
@@ -87,16 +91,19 @@ impl TCanvas for PaintingCanvas {
     }
 }
 
-#[derive(Default, Clone, Copy)]
-struct DragAndDropEvent {
-    from: (f64, f64),
-    to: (f64, f64),
-    dragging: bool,
+struct App {
+    control_canvas: Rc<PaintingCanvas>,
+    paint_canvas: Rc<PaintingCanvas>,
+    renderer: Rc<Renderer>,
 }
 
-impl DragAndDropEvent {
-    fn into_rectangle(self) -> figures::Rectangle {
-        figures::Rectangle::new(self.from, self.to)
+impl App {
+    fn new(control_canvas: Rc<PaintingCanvas>, paint_canvas: Rc<PaintingCanvas>) -> Self {
+        App {
+            control_canvas,
+            paint_canvas,
+            renderer: Rc::new(Renderer::new()),
+        }
     }
 }
 
@@ -106,6 +113,8 @@ pub fn start() -> Result<(), JsValue> {
 
     let control_canvas = Rc::new(PaintingCanvas::create_by_element_id("control-canvas")?);
     let paint_canvas = Rc::new(PaintingCanvas::create_by_element_id("paint-canvas")?);
+
+    let app = App::new(control_canvas.clone(), paint_canvas.clone());
 
     let dnd = Rc::new(Cell::new(DragAndDropEvent::default()));
 
@@ -161,9 +170,7 @@ pub fn start() -> Result<(), JsValue> {
                 d.dragging = false;
                 dnd.set(d);
 
-                let rect = dnd.get().into_rectangle();
-                rect.draw(&paint_canvas.context);
-                paint_canvas.register(Figure::Rectangle(rect));
+                app.renderer.on_mouse_dnd(d, &paint_canvas.context);
 
                 // イベントが確定したらcontrol layerは消去する
                 control_canvas.clear();
