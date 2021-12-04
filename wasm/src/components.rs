@@ -33,14 +33,18 @@ impl TFigure for Button {
     fn render(&self, ctx: &dyn crate::model::figures::TDrawingContext) {
         self.rect.render(ctx);
 
-        let (x, y) = self.rect.from;
-        let (_w, h) = self.rect.size();
+        let (x, y) = self.rect.from.get();
+        let (_w, h) = self.rect.size;
 
         ctx.text(&self.text, x, y + h * 0.5, (h * 0.5) as i32);
     }
 
     fn click(&self) {
         (self.on_click)();
+    }
+
+    fn move_to(&self, x: f64, y: f64) {
+        todo!()
     }
 }
 
@@ -78,8 +82,8 @@ impl<V: Clone + Debug> TFigure for ToggleStateButton<V> {
     fn render(&self, ctx: &dyn crate::model::figures::TDrawingContext) {
         self.rect.render(ctx);
 
-        let (x, y) = self.rect.from;
-        let (_w, h) = self.rect.size();
+        let (x, y) = self.rect.from.get();
+        let (_w, h) = self.rect.size;
 
         ctx.text(
             &self.options[self.index.get()].0,
@@ -92,5 +96,9 @@ impl<V: Clone + Debug> TFigure for ToggleStateButton<V> {
     fn click(&self) {
         self.index.set((self.index.get() + 1) % self.options.len());
         (self.on_click)(self.options[self.index.get()].1.clone());
+    }
+
+    fn move_to(&self, x: f64, y: f64) {
+        todo!()
     }
 }

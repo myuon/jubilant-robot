@@ -48,7 +48,7 @@ impl Renderer {
             .find_map(|(i, fig)| if fig.contains(x, y) { Some(i) } else { None })
     }
 
-    pub fn borrow(&self, i: usize) -> Ref<'_, Vec<Box<dyn TFigure>>> {
+    pub fn borrow(&self) -> Ref<'_, Vec<Box<dyn TFigure>>> {
         self.figures.borrow()
     }
 

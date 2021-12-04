@@ -102,7 +102,7 @@ impl App {
 
         let tool_state = self.tool_state.clone();
         self.control.register(ToggleStateButton::<ToolState>::new(
-            Rectangle::new((0.0, 45.0), (100.0, 85.0)),
+            Rectangle::new((0.0, 45.0), (100.0, 40.0)),
             vec![
                 ("RECT".to_string(), ToolState::Rect),
                 ("MOVE".to_string(), ToolState::Move),
@@ -144,7 +144,10 @@ impl App {
 
                             let rect = Rectangle::new(
                                 d.from,
-                                (event.offset_x() as f64, event.offset_y() as f64),
+                                (
+                                    event.offset_x() as f64 - d.from.0,
+                                    event.offset_y() as f64 - d.from.1,
+                                ),
                             );
 
                             let context = app.control.get_context();
@@ -152,7 +155,18 @@ impl App {
                             rect.render(context);
                             context.reset_stroke();
                         }
-                        ToolState::Move => {}
+                        ToolState::Move => {
+                            if let Some(i) = app.selected_figure.get() {
+                                let figs = app.paint.get_renderer().borrow();
+                                let r = figs.get(i).unwrap();
+                                r.move_to(
+                                    event.offset_x() as f64 - d.from.0,
+                                    event.offset_y() as f64 - d.from.1,
+                                );
+
+                                app.paint.render();
+                            }
+                        }
                     }
                 }
             }))?;
@@ -174,12 +188,13 @@ impl App {
                 match state {
                     ToolState::Rect => {
                         // DnDで矩形を登録する
-                        let rect = Rectangle::new(d.from, d.to);
+                        let rect = Rectangle::new(d.from, (d.to.0 - d.from.0, d.to.1 - d.from.1));
                         app.paint.register(rect);
                         app.paint.render();
                     }
                     ToolState::Move if !d.dragging => {
                         let selected = app.paint.get_renderer().find_selected(d.from.0, d.from.1);
+                        console_log!("{:?} selected", selected);
                         app.selected_figure.set(selected);
                     }
                     _ => {}

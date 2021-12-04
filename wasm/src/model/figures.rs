@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 // figuresの列からcontextの命令列への変換は最適化入れられそう
 pub trait TDrawingContext {
     fn stroke_rect(&self, x: f64, y: f64, w: f64, h: f64);
@@ -14,6 +16,7 @@ pub trait TFigure: std::fmt::Debug {
     fn contains(&self, x: f64, y: f64) -> bool;
     fn render(&self, ctx: &dyn TDrawingContext);
     fn click(&self) {}
+    fn move_to(&self, x: f64, y: f64);
 }
 
 #[derive(Debug, Clone, Default)]
@@ -22,30 +25,33 @@ pub struct RectangleStyleOptions {
     pub fill_color: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Rectangle {
-    pub from: (f64, f64),
-    pub to: (f64, f64),
+    pub from: Cell<(f64, f64)>,
+    pub size: (f64, f64),
     pub style_options: RectangleStyleOptions,
 }
 
 impl Rectangle {
-    pub fn new(from: (f64, f64), to: (f64, f64)) -> Rectangle {
+    pub fn new(from: (f64, f64), size: (f64, f64)) -> Rectangle {
         Rectangle {
-            from,
-            to,
+            from: Cell::new(from),
+            size,
             style_options: Default::default(),
         }
     }
 
-    pub fn size(&self) -> (f64, f64) {
-        (self.to.0 - self.from.0, self.to.1 - self.from.1)
+    pub fn to(&self) -> (f64, f64) {
+        let from = self.from.get();
+        (from.0 + self.size.0, from.1 + self.size.1)
     }
 }
 
 impl TFigure for Rectangle {
     fn contains(&self, x: f64, y: f64) -> bool {
-        self.from.0 <= x && x <= self.to.0 && self.from.1 <= y && y <= self.to.1
+        let (x1, y1) = self.from.get();
+        let (x2, y2) = self.to();
+        x1 <= x && x <= x2 && y1 <= y && y <= y2
     }
 
     fn render(&self, context: &dyn TDrawingContext) {
@@ -54,9 +60,23 @@ impl TFigure for Rectangle {
         }
 
         if self.style_options.fill.unwrap_or(false) {
-            context.fill_rect(self.from.0, self.from.1, self.size().0, self.size().1);
+            context.fill_rect(
+                self.from.get().0,
+                self.from.get().1,
+                self.size.0,
+                self.size.1,
+            );
         } else {
-            context.stroke_rect(self.from.0, self.from.1, self.size().0, self.size().1);
+            context.stroke_rect(
+                self.from.get().0,
+                self.from.get().1,
+                self.size.0,
+                self.size.1,
+            );
         }
+    }
+
+    fn move_to(&self, x: f64, y: f64) {
+        self.from.set((x, y));
     }
 }
