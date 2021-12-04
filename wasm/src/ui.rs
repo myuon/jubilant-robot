@@ -35,17 +35,18 @@ impl UI {
         &self.context
     }
 
-    fn clear(&self) {
+    pub fn clear(&self) {
+        self.renderer.unregister_all();
+        self.render();
+    }
+
+    pub fn render(&self) {
         self.context.clear_rect(
             0.0,
             0.0,
             self.canvas.width() as f64,
             self.canvas.height() as f64,
         );
-    }
-
-    pub fn render(&self) {
-        self.clear();
         self.renderer.render(&self.context);
     }
 

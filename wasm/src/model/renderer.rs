@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use crate::utils::{console_log, event::MouseUpEvent};
+use crate::utils::event::MouseUpEvent;
 
 use super::figures::{TDrawingContext, TFigure};
 
@@ -21,6 +21,10 @@ impl Renderer {
         self.figures.replace(figs);
     }
 
+    pub fn unregister_all(&self) {
+        self.figures.take();
+    }
+
     pub fn render(&self, ctx: &impl TDrawingContext) {
         let figs = self.figures.borrow();
         for fig in figs.iter() {
@@ -31,7 +35,7 @@ impl Renderer {
     pub fn handle_mouse_up(&self, event: MouseUpEvent) {
         for fig in &*self.figures.borrow() {
             if fig.contains(event.at.0, event.at.1) {
-                console_log!("{:?}", fig);
+                fig.click();
             }
         }
     }

@@ -80,9 +80,13 @@ impl App {
     }
 
     fn initialize(&self) {
+        let paint = self.paint.clone();
         self.control.register(Button::new(
             "CLEAR".to_string(),
             Rectangle::new((0.0, 0.0), (100.0, 40.0)),
+            Box::new(move || {
+                paint.clear();
+            }),
         ));
         self.control.render();
     }

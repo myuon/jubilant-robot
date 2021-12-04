@@ -1,17 +1,25 @@
 use crate::model::figures::{Rectangle, TFigure};
+use derivative::*;
 
-#[derive(Debug, Clone)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Button {
     pub text: String,
     pub rect: Rectangle,
+    #[derivative(Debug = "ignore")]
+    pub on_click: Box<dyn Fn()>,
 }
 
 impl Button {
-    pub fn new(text: String, mut rect: Rectangle) -> Self {
+    pub fn new(text: String, mut rect: Rectangle, on_click: Box<dyn Fn()>) -> Self {
         rect.style_options.fill = Some(true);
         rect.style_options.fill_color = Some("#333".to_string());
 
-        Button { text, rect }
+        Button {
+            text,
+            rect,
+            on_click,
+        }
     }
 }
 
@@ -27,5 +35,9 @@ impl TFigure for Button {
         let (_w, h) = self.rect.size();
 
         ctx.text(&self.text, x, y + h * 0.5, (h * 0.5) as i32);
+    }
+
+    fn click(&self) {
+        (self.on_click)();
     }
 }

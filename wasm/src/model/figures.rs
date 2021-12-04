@@ -13,6 +13,7 @@ pub trait TDrawingContext {
 pub trait TFigure: std::fmt::Debug {
     fn contains(&self, x: f64, y: f64) -> bool;
     fn render(&self, context: &dyn TDrawingContext);
+    fn click(&self) {}
 }
 
 #[derive(Debug, Clone, Default)]
