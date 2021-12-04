@@ -8,9 +8,9 @@ extern "C" {
 }
 
 use js_sys::Array;
-use model::figures::Figure;
 use model::figures::TCanvas;
 use model::figures::TDrawingContext;
+use model::figures::TFigure;
 use model::renderer::Renderer;
 use std::cell::Cell;
 use std::f64;
@@ -50,7 +50,6 @@ impl TDrawingContext for CanvasRenderingContext2d {
 pub struct PaintingCanvas {
     canvas: HtmlCanvasElement,
     context: CanvasRenderingContext2d,
-    figures: Cell<Vec<Figure>>,
 }
 
 impl PaintingCanvas {
@@ -65,11 +64,7 @@ impl PaintingCanvas {
             .unwrap()
             .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
 
-        Ok(PaintingCanvas {
-            canvas,
-            context,
-            figures: Cell::new(vec![]),
-        })
+        Ok(PaintingCanvas { canvas, context })
     }
 }
 
@@ -81,12 +76,6 @@ impl TCanvas for PaintingCanvas {
             self.canvas.width() as f64,
             self.canvas.height() as f64,
         );
-    }
-
-    fn register(&self, figure: Figure) {
-        let mut figs = self.figures.take();
-        figs.push(figure);
-        self.figures.set(figs);
     }
 }
 
@@ -110,7 +99,7 @@ impl App {
 
     fn initialize(&self) {
         self.renderer
-            .register(Figure::Rectangle(Rectangle::new((0.0, 0.0), (100.0, 40.0))));
+            .register(Rectangle::new((0.0, 0.0), (100.0, 40.0)));
         self.renderer.render(&self.control_canvas.context);
     }
 
@@ -145,7 +134,7 @@ impl App {
                         Rectangle::new(d.from, (event.offset_x() as f64, event.offset_y() as f64));
 
                     control_canvas.context.set_stroke_dashed(vec![5, 5]);
-                    rect.draw(&control_canvas.context);
+                    rect.render(&control_canvas.context);
                     control_canvas.context.reset_stroke();
                 }
             }) as Box<dyn FnMut(_)>)
@@ -168,12 +157,14 @@ impl App {
                 d.dragging = false;
                 dnd.set(d);
 
-                app.renderer.on_mouse_dnd(d, &app.paint_canvas.context);
+                // DnDで矩形を登録する
+                let rect = Rectangle::new(d.from, d.to);
+                app.renderer.register(rect);
 
                 // イベントが確定したらcontrol layerは消去する
                 app.control_canvas.clear();
 
-                app.renderer.on_mouse_up(MouseUpEvent {
+                app.renderer.handle_mouse_up(MouseUpEvent {
                     at: (event.offset_x() as f64, event.offset_y() as f64),
                 })
             }) as Box<dyn FnMut(_)>)

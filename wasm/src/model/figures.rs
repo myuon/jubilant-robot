@@ -8,26 +8,11 @@ pub trait TDrawingContext {
 
 pub trait TCanvas {
     fn clear(&self);
-    fn register(&self, figure: Figure);
 }
 
-#[derive(Debug, Clone)]
-pub enum Figure {
-    Rectangle(Rectangle),
-}
-
-impl Figure {
-    pub fn contains(&self, x: f64, y: f64) -> bool {
-        match self {
-            Figure::Rectangle(rect) => rect.contains(x, y),
-        }
-    }
-
-    pub fn render(&self, context: &impl TDrawingContext) {
-        match self {
-            Figure::Rectangle(rect) => rect.draw(context),
-        }
-    }
+pub trait TFigure: std::fmt::Debug {
+    fn contains(&self, x: f64, y: f64) -> bool;
+    fn render(&self, context: &dyn TDrawingContext);
 }
 
 #[derive(Debug, Clone)]
@@ -40,22 +25,15 @@ impl Rectangle {
     pub fn new(from: (f64, f64), to: (f64, f64)) -> Rectangle {
         Rectangle { from, to }
     }
+}
 
-    pub fn contains(&self, x: f64, y: f64) -> bool {
+impl TFigure for Rectangle {
+    fn contains(&self, x: f64, y: f64) -> bool {
         self.from.0 <= x && x <= self.to.0 && self.from.1 <= y && y <= self.to.1
     }
 
-    pub fn draw(&self, ctx: &impl TDrawingContext) {
-        ctx.rectangle(
-            self.from.0,
-            self.from.1,
-            self.to.0 - self.from.0,
-            self.to.1 - self.from.1,
-        );
-    }
-
-    pub fn clear(&self, ctx: &impl TDrawingContext) {
-        ctx.clear_rect(
+    fn render(&self, context: &dyn TDrawingContext) {
+        context.rectangle(
             self.from.0,
             self.from.1,
             self.to.0 - self.from.0,

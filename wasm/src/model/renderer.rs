@@ -1,14 +1,11 @@
 use std::cell::RefCell;
 
-use crate::utils::{
-    console_log,
-    event::{DragAndDropEvent, MouseUpEvent},
-};
+use crate::utils::{console_log, event::MouseUpEvent};
 
-use super::figures::{Figure, Rectangle, TDrawingContext};
+use super::figures::{TDrawingContext, TFigure};
 
 pub struct Renderer {
-    figures: RefCell<Vec<Figure>>,
+    figures: RefCell<Vec<Box<dyn TFigure>>>,
 }
 
 impl Renderer {
@@ -18,9 +15,9 @@ impl Renderer {
         }
     }
 
-    pub fn register(&self, figure: Figure) {
+    pub fn register(&self, figure: impl TFigure + 'static) {
         let mut figs = self.figures.take();
-        figs.push(figure);
+        figs.push(Box::new(figure));
         self.figures.replace(figs);
     }
 
@@ -31,14 +28,7 @@ impl Renderer {
         }
     }
 
-    pub fn on_mouse_dnd(&self, event: DragAndDropEvent, context: &impl TDrawingContext) {
-        let rect = Rectangle::new(event.from, event.to);
-        rect.draw(context);
-
-        self.register(Figure::Rectangle(rect));
-    }
-
-    pub fn on_mouse_up(&self, event: MouseUpEvent) {
+    pub fn handle_mouse_up(&self, event: MouseUpEvent) {
         for fig in &*self.figures.borrow() {
             if fig.contains(event.at.0, event.at.1) {
                 console_log!("{:?}", fig);
