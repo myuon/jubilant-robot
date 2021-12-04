@@ -24,6 +24,13 @@ impl Renderer {
         self.figures.replace(figs);
     }
 
+    pub fn render(&self, ctx: &impl TDrawingContext) {
+        let figs = self.figures.borrow();
+        for fig in figs.iter() {
+            fig.render(ctx);
+        }
+    }
+
     pub fn on_mouse_dnd(&self, event: DragAndDropEvent, context: &impl TDrawingContext) {
         let rect = Rectangle::new(event.from, event.to);
         rect.draw(context);

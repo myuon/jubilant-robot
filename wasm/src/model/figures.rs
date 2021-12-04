@@ -22,6 +22,12 @@ impl Figure {
             Figure::Rectangle(rect) => rect.contains(x, y),
         }
     }
+
+    pub fn render(&self, context: &impl TDrawingContext) {
+        match self {
+            Figure::Rectangle(rect) => rect.draw(context),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

@@ -108,6 +108,12 @@ impl App {
         }
     }
 
+    fn initialize(&self) {
+        self.renderer
+            .register(Figure::Rectangle(Rectangle::new((0.0, 0.0), (100.0, 40.0))));
+        self.renderer.render(&self.control_canvas.context);
+    }
+
     fn register_mousedown(&self) -> Result<(), JsValue> {
         let dnd = self.dnd_event.clone();
         let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
@@ -196,9 +202,8 @@ pub fn start() -> Result<(), JsValue> {
     let control_canvas = Rc::new(PaintingCanvas::create_by_element_id("control-canvas")?);
     let paint_canvas = Rc::new(PaintingCanvas::create_by_element_id("paint-canvas")?);
 
-    draw_button(&control_canvas.context, 0.0, 0.0, 100.0, 40.0);
-
     let app = App::new(control_canvas, paint_canvas);
+    app.initialize();
 
     app.register_mousedown()?;
     app.register_mousemove()?;
