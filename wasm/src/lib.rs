@@ -1,3 +1,4 @@
+mod components;
 mod model;
 mod utils;
 
@@ -7,6 +8,7 @@ extern "C" {
     fn log(s: &str);
 }
 
+use components::Button;
 use js_sys::Array;
 use model::figures::TCanvas;
 use model::figures::TDrawingContext;
@@ -26,12 +28,18 @@ use crate::utils::event::DragAndDropEvent;
 use crate::utils::event::MouseUpEvent;
 
 impl TDrawingContext for CanvasRenderingContext2d {
-    fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64) {
-        self.clear_rect(x, y, w, h)
+    fn stroke_rect(&self, x: f64, y: f64, w: f64, h: f64) {
+        self.stroke_rect(x, y, w, h);
     }
 
-    fn rectangle(&self, x: f64, y: f64, w: f64, h: f64) {
-        self.stroke_rect(x, y, w, h);
+    fn text(&self, text: &str, x: f64, y: f64, size: i32) {
+        self.set_fill_style(&JsValue::from_str("white"));
+        self.set_font(format!("{}px sans-serif", size).as_str());
+        self.fill_text(text, x, y).unwrap();
+    }
+
+    fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64) {
+        self.clear_rect(x, y, w, h)
     }
 
     fn set_stroke_dashed(&self, patterns: Vec<i32>) {
@@ -44,6 +52,10 @@ impl TDrawingContext for CanvasRenderingContext2d {
 
     fn reset_stroke(&self) {
         self.set_line_dash(&Array::new()).unwrap();
+    }
+
+    fn fill_rect(&self, x: f64, y: f64, w: f64, h: f64) {
+        self.fill_rect(x, y, w, h);
     }
 }
 
@@ -98,8 +110,10 @@ impl App {
     }
 
     fn initialize(&self) {
-        self.renderer
-            .register(Rectangle::new((0.0, 0.0), (100.0, 40.0)));
+        self.renderer.register(Button::new(
+            "CLEAR".to_string(),
+            Rectangle::new((0.0, 0.0), (100.0, 40.0)),
+        ));
         self.renderer.render(&self.control_canvas.context);
     }
 
@@ -176,14 +190,6 @@ impl App {
 
         Ok(())
     }
-}
-
-fn draw_button(ctx: &CanvasRenderingContext2d, x: f64, y: f64, w: f64, h: f64) {
-    ctx.fill_rect(x, y, w, h);
-
-    ctx.set_fill_style(&JsValue::from_str("white"));
-    ctx.set_font(format!("{}px sans-serif", h * 0.5).as_str());
-    ctx.fill_text("CLEAR", 0.0, h * 0.5).unwrap();
 }
 
 #[wasm_bindgen(start)]
