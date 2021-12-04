@@ -35,10 +35,6 @@ impl UI {
         &self.context
     }
 
-    pub fn get_canvas(&self) -> &HtmlCanvasElement {
-        &self.canvas
-    }
-
     fn clear(&self) {
         self.context.clear_rect(
             0.0,

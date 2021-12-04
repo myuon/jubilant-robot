@@ -7,6 +7,7 @@ pub trait TDrawingContext {
     fn clear_rect(&self, x: f64, y: f64, w: f64, h: f64);
     fn set_stroke_dashed(&self, patterns: Vec<i32>);
     fn reset_stroke(&self);
+    fn set_fill_color(&self, color: &str);
 }
 
 pub trait TFigure: std::fmt::Debug {
@@ -17,6 +18,7 @@ pub trait TFigure: std::fmt::Debug {
 #[derive(Debug, Clone, Default)]
 pub struct RectangleStyleOptions {
     pub fill: Option<bool>,
+    pub fill_color: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -46,6 +48,10 @@ impl TFigure for Rectangle {
     }
 
     fn render(&self, context: &dyn TDrawingContext) {
+        if let Some(c) = &self.style_options.fill_color {
+            context.set_fill_color(c);
+        }
+
         if self.style_options.fill.unwrap_or(false) {
             context.fill_rect(self.from.0, self.from.1, self.size().0, self.size().1);
         } else {

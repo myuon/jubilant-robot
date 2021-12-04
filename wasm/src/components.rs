@@ -9,6 +9,7 @@ pub struct Button {
 impl Button {
     pub fn new(text: String, mut rect: Rectangle) -> Self {
         rect.style_options.fill = Some(true);
+        rect.style_options.fill_color = Some("#333".to_string());
 
         Button { text, rect }
     }

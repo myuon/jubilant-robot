@@ -30,6 +30,10 @@ impl TDrawingContext for CanvasRenderingContext2d {
         self.stroke_rect(x, y, w, h);
     }
 
+    fn fill_rect(&self, x: f64, y: f64, w: f64, h: f64) {
+        self.fill_rect(x, y, w, h);
+    }
+
     fn text(&self, text: &str, x: f64, y: f64, size: i32) {
         self.set_fill_style(&JsValue::from_str("white"));
         self.set_font(format!("{}px sans-serif", size).as_str());
@@ -52,8 +56,8 @@ impl TDrawingContext for CanvasRenderingContext2d {
         self.set_line_dash(&Array::new()).unwrap();
     }
 
-    fn fill_rect(&self, x: f64, y: f64, w: f64, h: f64) {
-        self.fill_rect(x, y, w, h);
+    fn set_fill_color(&self, color: &str) {
+        self.set_fill_style(&JsValue::from_str(color));
     }
 }
 
@@ -140,6 +144,9 @@ impl App {
                 });
 
                 app.control.render();
+                app.control.handle_mouse_up(MouseUpEvent {
+                    at: (event.offset_x() as f64, event.offset_y() as f64),
+                });
             }))?;
 
         Ok(())
