@@ -117,6 +117,7 @@ impl App {
 
     fn register_mousedown(&self) -> Result<(), JsValue> {
         let dnd = self.dnd_event.clone();
+        let app = self.clone();
         self.control
             .register_on_mousedown(Box::new(move |event: web_sys::MouseEvent| {
                 let point = (event.offset_x() as f64, event.offset_y() as f64);
@@ -125,6 +126,15 @@ impl App {
                 d.from = point;
                 d.dragging = true;
                 dnd.set(d);
+
+                let state = app.tool_state.get();
+                match state {
+                    ToolState::Move => {
+                        let selected = app.paint.get_renderer().find_selected(d.from.0, d.from.1);
+                        app.selected_figure.set(selected);
+                    }
+                    _ => {}
+                }
             }))?;
 
         Ok(())
@@ -195,11 +205,6 @@ impl App {
                         let rect = Rectangle::new(d.from, (d.to.0 - d.from.0, d.to.1 - d.from.1));
                         app.paint.register(rect);
                         app.paint.render();
-                    }
-                    ToolState::Move if !d.dragging => {
-                        let selected = app.paint.get_renderer().find_selected(d.from.0, d.from.1);
-                        console_log!("{:?} selected", selected);
-                        app.selected_figure.set(selected);
                     }
                     _ => {}
                 }
