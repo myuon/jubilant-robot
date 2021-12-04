@@ -1,9 +1,6 @@
 use std::{cell::Cell, fmt::Debug};
 
-use crate::{
-    model::figures::{Rectangle, TFigure},
-    utils::console_log,
-};
+use crate::model::figures::{Rectangle, TFigure};
 use derivative::*;
 
 #[derive(Derivative)]

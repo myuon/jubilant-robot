@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 
 use crate::utils::event::MouseUpEvent;
 
@@ -38,5 +38,21 @@ impl Renderer {
                 fig.click();
             }
         }
+    }
+
+    pub fn find_selected(&self, x: f64, y: f64) -> Option<usize> {
+        self.figures
+            .borrow()
+            .iter()
+            .enumerate()
+            .find_map(|(i, fig)| if fig.contains(x, y) { Some(i) } else { None })
+    }
+
+    pub fn borrow(&self, i: usize) -> Ref<'_, Vec<Box<dyn TFigure>>> {
+        self.figures.borrow()
+    }
+
+    pub fn set_at(&self, i: usize, fig: impl TFigure + 'static) {
+        self.figures.borrow_mut()[i] = Box::new(fig);
     }
 }

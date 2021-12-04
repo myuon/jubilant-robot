@@ -14,7 +14,6 @@ use components::ToggleStateButton;
 use js_sys::Array;
 use model::figures::TDrawingContext;
 use model::figures::TFigure;
-use std::borrow::Borrow;
 use std::cell::Cell;
 use std::f64;
 use std::rc::Rc;
@@ -76,6 +75,7 @@ struct App {
     paint: Rc<UI>,
     dnd_event: Rc<Cell<DragAndDropEvent>>,
     tool_state: Rc<Cell<ToolState>>,
+    selected_figure: Rc<Cell<Option<usize>>>, // CONSISTENCY: これを使っている間にpaintのfiguresを更新しないこと
 }
 
 impl App {
@@ -86,6 +86,7 @@ impl App {
             paint: paint_canvas,
             dnd_event: Rc::new(Cell::new(DragAndDropEvent::default())),
             tool_state: Rc::new(Cell::new(ToolState::Rect)),
+            selected_figure: Rc::new(Cell::new(None)),
         }
     }
 
@@ -136,15 +137,23 @@ impl App {
             .register_on_mousemove(Box::new(move |event: web_sys::MouseEvent| {
                 let d = dnd.get();
                 if d.dragging {
-                    app.control.render();
+                    let state = app.tool_state.get();
+                    match state {
+                        ToolState::Rect => {
+                            app.control.render();
 
-                    let rect =
-                        Rectangle::new(d.from, (event.offset_x() as f64, event.offset_y() as f64));
+                            let rect = Rectangle::new(
+                                d.from,
+                                (event.offset_x() as f64, event.offset_y() as f64),
+                            );
 
-                    let context = app.control.get_context();
-                    context.set_stroke_dashed(vec![5, 5]);
-                    rect.render(context);
-                    context.reset_stroke();
+                            let context = app.control.get_context();
+                            context.set_stroke_dashed(vec![5, 5]);
+                            rect.render(context);
+                            context.reset_stroke();
+                        }
+                        ToolState::Move => {}
+                    }
                 }
             }))?;
 
@@ -161,11 +170,19 @@ impl App {
                 d.dragging = false;
                 dnd.set(d);
 
-                if app.tool_state.get() == ToolState::Rect {
-                    // DnDで矩形を登録する
-                    let rect = Rectangle::new(d.from, d.to);
-                    app.paint.register(rect);
-                    app.paint.render();
+                let state = app.tool_state.get();
+                match state {
+                    ToolState::Rect => {
+                        // DnDで矩形を登録する
+                        let rect = Rectangle::new(d.from, d.to);
+                        app.paint.register(rect);
+                        app.paint.render();
+                    }
+                    ToolState::Move if !d.dragging => {
+                        let selected = app.paint.get_renderer().find_selected(d.from.0, d.from.1);
+                        app.selected_figure.set(selected);
+                    }
+                    _ => {}
                 }
 
                 app.paint.handle_mouse_up(MouseUpEvent {

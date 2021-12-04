@@ -35,6 +35,10 @@ impl UI {
         &self.context
     }
 
+    pub fn get_renderer(&self) -> &Renderer {
+        &self.renderer
+    }
+
     pub fn clear(&self) {
         self.renderer.unregister_all();
         self.render();
