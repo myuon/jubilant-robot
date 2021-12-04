@@ -14,6 +14,7 @@ use components::ToggleStateButton;
 use js_sys::Array;
 use model::figures::TDrawingContext;
 use model::figures::TFigure;
+use std::borrow::Borrow;
 use std::cell::Cell;
 use std::f64;
 use std::rc::Rc;
@@ -62,7 +63,7 @@ impl TDrawingContext for CanvasRenderingContext2d {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ToolState {
     Move,
     Rect,
@@ -74,7 +75,7 @@ struct App {
     control_select_rect: Rc<Cell<Option<Rectangle>>>,
     paint: Rc<UI>,
     dnd_event: Rc<Cell<DragAndDropEvent>>,
-    tool_state: ToolState,
+    tool_state: Rc<Cell<ToolState>>,
 }
 
 impl App {
@@ -84,7 +85,7 @@ impl App {
             control_select_rect: Rc::new(Cell::new(None)),
             paint: paint_canvas,
             dnd_event: Rc::new(Cell::new(DragAndDropEvent::default())),
-            tool_state: ToolState::Rect,
+            tool_state: Rc::new(Cell::new(ToolState::Rect)),
         }
     }
 
@@ -97,14 +98,16 @@ impl App {
                 paint.clear();
             }),
         ));
-        self.control.register(ToggleStateButton::new(
+
+        let tool_state = self.tool_state.clone();
+        self.control.register(ToggleStateButton::<ToolState>::new(
             Rectangle::new((0.0, 45.0), (100.0, 85.0)),
-            vec!["RECT", "MOVE"]
-                .into_iter()
-                .map(|s| s.to_string())
-                .collect(),
-            Box::new(move |st| {
-                console_log!("foo");
+            vec![
+                ("RECT".to_string(), ToolState::Rect),
+                ("MOVE".to_string(), ToolState::Move),
+            ],
+            Box::new(move |v| {
+                tool_state.set(v);
             }),
         ));
 
@@ -158,19 +161,22 @@ impl App {
                 d.dragging = false;
                 dnd.set(d);
 
-                // DnDで矩形を登録する
-                let rect = Rectangle::new(d.from, d.to);
-                app.paint.register(rect);
-                app.paint.render();
+                if app.tool_state.get() == ToolState::Rect {
+                    // DnDで矩形を登録する
+                    let rect = Rectangle::new(d.from, d.to);
+                    app.paint.register(rect);
+                    app.paint.render();
+                }
 
                 app.paint.handle_mouse_up(MouseUpEvent {
                     at: (event.offset_x() as f64, event.offset_y() as f64),
                 });
+                app.paint.render();
 
-                app.control.render();
                 app.control.handle_mouse_up(MouseUpEvent {
                     at: (event.offset_x() as f64, event.offset_y() as f64),
                 });
+                app.control.render();
             }))?;
 
         Ok(())

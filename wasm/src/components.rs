@@ -1,6 +1,9 @@
-use std::cell::Cell;
+use std::{cell::Cell, fmt::Debug};
 
-use crate::model::figures::{Rectangle, TFigure};
+use crate::{
+    model::figures::{Rectangle, TFigure},
+    utils::console_log,
+};
 use derivative::*;
 
 #[derive(Derivative)]
@@ -46,31 +49,31 @@ impl TFigure for Button {
 
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub struct ToggleStateButton {
+pub struct ToggleStateButton<V> {
     pub rect: Rectangle,
-    labels: Vec<String>,
+    options: Vec<(String, V)>,
     index: Cell<usize>,
     #[derivative(Debug = "ignore")]
-    on_click: Box<dyn Fn(String)>,
+    on_click: Box<dyn Fn(V)>,
 }
 
-impl ToggleStateButton {
-    pub fn new(mut rect: Rectangle, labels: Vec<String>, on_click: Box<dyn Fn(String)>) -> Self {
-        assert!(labels.len() > 0);
+impl<V> ToggleStateButton<V> {
+    pub fn new(mut rect: Rectangle, options: Vec<(String, V)>, on_click: Box<dyn Fn(V)>) -> Self {
+        assert!(options.len() > 0);
 
         rect.style_options.fill = Some(true);
         rect.style_options.fill_color = Some("#333".to_string());
 
         ToggleStateButton {
             rect,
-            labels,
+            options,
             index: Cell::new(0),
             on_click,
         }
     }
 }
 
-impl TFigure for ToggleStateButton {
+impl<V: Clone + Debug> TFigure for ToggleStateButton<V> {
     fn contains(&self, x: f64, y: f64) -> bool {
         self.rect.contains(x, y)
     }
@@ -82,7 +85,7 @@ impl TFigure for ToggleStateButton {
         let (_w, h) = self.rect.size();
 
         ctx.text(
-            &self.labels[self.index.get()],
+            &self.options[self.index.get()].0,
             x,
             y + h * 0.5,
             (h * 0.5) as i32,
@@ -90,7 +93,7 @@ impl TFigure for ToggleStateButton {
     }
 
     fn click(&self) {
-        self.index.set((self.index.get() + 1) % self.labels.len());
-        (self.on_click)(self.labels[self.index.get()].clone());
+        self.index.set((self.index.get() + 1) % self.options.len());
+        (self.on_click)(self.options[self.index.get()].1.clone());
     }
 }
