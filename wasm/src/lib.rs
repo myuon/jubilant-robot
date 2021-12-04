@@ -95,6 +95,7 @@ struct App {
     control_canvas: Rc<PaintingCanvas>,
     paint_canvas: Rc<PaintingCanvas>,
     renderer: Rc<Renderer>,
+    dnd_event: Rc<Cell<DragAndDropEvent>>,
 }
 
 impl App {
@@ -103,23 +104,12 @@ impl App {
             control_canvas,
             paint_canvas,
             renderer: Rc::new(Renderer::new()),
+            dnd_event: Rc::new(Cell::new(DragAndDropEvent::default())),
         }
     }
-}
 
-#[wasm_bindgen(start)]
-pub fn start() -> Result<(), JsValue> {
-    console_log!("Application initialized.");
-
-    let control_canvas = Rc::new(PaintingCanvas::create_by_element_id("control-canvas")?);
-    let paint_canvas = Rc::new(PaintingCanvas::create_by_element_id("paint-canvas")?);
-
-    let app = App::new(control_canvas, paint_canvas);
-
-    let dnd = Rc::new(Cell::new(DragAndDropEvent::default()));
-
-    {
-        let dnd = dnd.clone();
+    fn register_mousedown(&self) -> Result<(), JsValue> {
+        let dnd = self.dnd_event.clone();
         let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
             let point = (event.offset_x() as f64, event.offset_y() as f64);
 
@@ -128,14 +118,17 @@ pub fn start() -> Result<(), JsValue> {
             d.dragging = true;
             dnd.set(d);
         }) as Box<dyn FnMut(_)>);
-        app.control_canvas
+        self.control_canvas
             .canvas
             .add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())?;
         closure.forget();
+
+        Ok(())
     }
-    {
-        let dnd = dnd.clone();
-        let control_canvas = app.control_canvas.clone();
+
+    fn register_mousemove(&self) -> Result<(), JsValue> {
+        let dnd = self.dnd_event.clone();
+        let control_canvas = self.control_canvas.clone();
         let closure = {
             let control_canvas = control_canvas.clone();
             Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
@@ -151,15 +144,18 @@ pub fn start() -> Result<(), JsValue> {
                 }
             }) as Box<dyn FnMut(_)>)
         };
-        app.control_canvas
+        self.control_canvas
             .canvas
             .add_event_listener_with_callback("mousemove", closure.as_ref().unchecked_ref())?;
         closure.forget();
+
+        Ok(())
     }
-    {
-        let dnd = dnd.clone();
+
+    fn register_mouseup(&self) -> Result<(), JsValue> {
+        let dnd = self.dnd_event.clone();
         let closure = {
-            let app = app.clone();
+            let app = self.clone();
             Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
                 let mut d = dnd.get();
                 d.to = (event.offset_x() as f64, event.offset_y() as f64);
@@ -176,11 +172,37 @@ pub fn start() -> Result<(), JsValue> {
                 })
             }) as Box<dyn FnMut(_)>)
         };
-        app.control_canvas
+        self.control_canvas
             .canvas
             .add_event_listener_with_callback("mouseup", closure.as_ref().unchecked_ref())?;
         closure.forget();
+
+        Ok(())
     }
+}
+
+fn draw_button(ctx: &CanvasRenderingContext2d, x: f64, y: f64, w: f64, h: f64) {
+    ctx.fill_rect(x, y, w, h);
+
+    ctx.set_fill_style(&JsValue::from_str("white"));
+    ctx.set_font(format!("{}px sans-serif", h * 0.5).as_str());
+    ctx.fill_text("CLEAR", 0.0, h * 0.5).unwrap();
+}
+
+#[wasm_bindgen(start)]
+pub fn start() -> Result<(), JsValue> {
+    console_log!("Application initialized.");
+
+    let control_canvas = Rc::new(PaintingCanvas::create_by_element_id("control-canvas")?);
+    let paint_canvas = Rc::new(PaintingCanvas::create_by_element_id("paint-canvas")?);
+
+    draw_button(&control_canvas.context, 0.0, 0.0, 100.0, 40.0);
+
+    let app = App::new(control_canvas, paint_canvas);
+
+    app.register_mousedown()?;
+    app.register_mousemove()?;
+    app.register_mouseup()?;
 
     Ok(())
 }
