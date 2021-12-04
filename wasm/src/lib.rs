@@ -1,5 +1,6 @@
 mod components;
 mod model;
+mod ui;
 mod utils;
 
 #[wasm_bindgen]
@@ -12,14 +13,12 @@ use components::Button;
 use js_sys::Array;
 use model::figures::TDrawingContext;
 use model::figures::TFigure;
-use model::renderer::Renderer;
 use std::cell::Cell;
 use std::f64;
 use std::rc::Rc;
+use ui::UI;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 use web_sys::CanvasRenderingContext2d;
-use web_sys::HtmlCanvasElement;
 
 use crate::model::figures::Rectangle;
 use crate::utils::console_log;
@@ -58,44 +57,10 @@ impl TDrawingContext for CanvasRenderingContext2d {
     }
 }
 
-pub struct UI {
-    canvas: HtmlCanvasElement,
-    context: CanvasRenderingContext2d,
-    renderer: Renderer,
-}
-
-impl UI {
-    pub fn create_by_element_id(element_id: &str) -> Result<Self, JsValue> {
-        let document = web_sys::window().unwrap().document().unwrap();
-        let canvas = document.get_element_by_id(element_id).unwrap();
-        let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
-
-        let context = canvas
-            .get_context("2d")
-            .unwrap()
-            .unwrap()
-            .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
-
-        Ok(UI {
-            canvas,
-            context,
-            renderer: Renderer::new(),
-        })
-    }
-
-    fn clear(&self) {
-        self.context.clear_rect(
-            0.0,
-            0.0,
-            self.canvas.width() as f64,
-            self.canvas.height() as f64,
-        );
-    }
-}
-
 #[derive(Clone)]
 struct App {
     control: Rc<UI>,
+    control_select_rect: Rc<Cell<Option<Rectangle>>>,
     paint: Rc<UI>,
     dnd_event: Rc<Cell<DragAndDropEvent>>,
 }
@@ -104,68 +69,62 @@ impl App {
     fn new(control_canvas: Rc<UI>, paint_canvas: Rc<UI>) -> Self {
         App {
             control: control_canvas,
+            control_select_rect: Rc::new(Cell::new(None)),
             paint: paint_canvas,
             dnd_event: Rc::new(Cell::new(DragAndDropEvent::default())),
         }
     }
 
     fn initialize(&self) {
-        self.control.renderer.register(Button::new(
+        self.control.register(Button::new(
             "CLEAR".to_string(),
             Rectangle::new((0.0, 0.0), (100.0, 40.0)),
         ));
-        self.control.renderer.render(&self.control.context);
+        self.control.render();
     }
 
     fn register_mousedown(&self) -> Result<(), JsValue> {
         let dnd = self.dnd_event.clone();
-        let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
-            let point = (event.offset_x() as f64, event.offset_y() as f64);
-
-            let mut d = dnd.get();
-            d.from = point;
-            d.dragging = true;
-            dnd.set(d);
-        }) as Box<dyn FnMut(_)>);
         self.control
-            .canvas
-            .add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())?;
-        closure.forget();
+            .register_on_mousedown(Box::new(move |event: web_sys::MouseEvent| {
+                let point = (event.offset_x() as f64, event.offset_y() as f64);
+
+                let mut d = dnd.get();
+                d.from = point;
+                d.dragging = true;
+                dnd.set(d);
+            }))?;
 
         Ok(())
     }
 
     fn register_mousemove(&self) -> Result<(), JsValue> {
         let dnd = self.dnd_event.clone();
-        let control_canvas = self.control.clone();
-        let closure = {
-            let control_canvas = control_canvas.clone();
-            Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+        let app = self.clone();
+        self.control
+            .register_on_mousemove(Box::new(move |event: web_sys::MouseEvent| {
                 let d = dnd.get();
                 if d.dragging {
-                    control_canvas.clear();
+                    app.control.render();
+
                     let rect =
                         Rectangle::new(d.from, (event.offset_x() as f64, event.offset_y() as f64));
 
-                    control_canvas.context.set_stroke_dashed(vec![5, 5]);
-                    rect.render(&control_canvas.context);
-                    control_canvas.context.reset_stroke();
+                    let context = app.control.get_context();
+                    context.set_stroke_dashed(vec![5, 5]);
+                    rect.render(context);
+                    context.reset_stroke();
                 }
-            }) as Box<dyn FnMut(_)>)
-        };
-        self.control
-            .canvas
-            .add_event_listener_with_callback("mousemove", closure.as_ref().unchecked_ref())?;
-        closure.forget();
+            }))?;
 
         Ok(())
     }
 
     fn register_mouseup(&self) -> Result<(), JsValue> {
         let dnd = self.dnd_event.clone();
-        let closure = {
-            let app = self.clone();
-            Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+        let app = self.clone();
+        self.control
+            .register_on_mouseup(Box::new(move |event: web_sys::MouseEvent| {
                 let mut d = dnd.get();
                 d.to = (event.offset_x() as f64, event.offset_y() as f64);
                 d.dragging = false;
@@ -173,22 +132,15 @@ impl App {
 
                 // DnDで矩形を登録する
                 let rect = Rectangle::new(d.from, d.to);
-                app.paint.renderer.register(rect);
-                app.paint.clear();
-                app.paint.renderer.render(&app.paint.context);
+                app.paint.register(rect);
+                app.paint.render();
 
-                app.paint.renderer.handle_mouse_up(MouseUpEvent {
+                app.paint.handle_mouse_up(MouseUpEvent {
                     at: (event.offset_x() as f64, event.offset_y() as f64),
                 });
 
-                // イベントが確定したらcontrol layerは消去する
-                app.control.clear();
-            }) as Box<dyn FnMut(_)>)
-        };
-        self.control
-            .canvas
-            .add_event_listener_with_callback("mouseup", closure.as_ref().unchecked_ref())?;
-        closure.forget();
+                app.control.render();
+            }))?;
 
         Ok(())
     }
