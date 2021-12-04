@@ -10,6 +10,7 @@ extern "C" {
 }
 
 use components::Button;
+use components::ToggleStateButton;
 use js_sys::Array;
 use model::figures::TDrawingContext;
 use model::figures::TFigure;
@@ -61,12 +62,19 @@ impl TDrawingContext for CanvasRenderingContext2d {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ToolState {
+    Move,
+    Rect,
+}
+
 #[derive(Clone)]
 struct App {
     control: Rc<UI>,
     control_select_rect: Rc<Cell<Option<Rectangle>>>,
     paint: Rc<UI>,
     dnd_event: Rc<Cell<DragAndDropEvent>>,
+    tool_state: ToolState,
 }
 
 impl App {
@@ -76,6 +84,7 @@ impl App {
             control_select_rect: Rc::new(Cell::new(None)),
             paint: paint_canvas,
             dnd_event: Rc::new(Cell::new(DragAndDropEvent::default())),
+            tool_state: ToolState::Rect,
         }
     }
 
@@ -88,6 +97,17 @@ impl App {
                 paint.clear();
             }),
         ));
+        self.control.register(ToggleStateButton::new(
+            Rectangle::new((0.0, 45.0), (100.0, 85.0)),
+            vec!["RECT", "MOVE"]
+                .into_iter()
+                .map(|s| s.to_string())
+                .collect(),
+            Box::new(move |st| {
+                console_log!("foo");
+            }),
+        ));
+
         self.control.render();
     }
 
