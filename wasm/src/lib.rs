@@ -135,7 +135,14 @@ impl App {
         let app = self.clone();
         self.control
             .register_on_mousemove(Box::new(move |event: web_sys::MouseEvent| {
-                let d = dnd.get();
+                let mut d = dnd.get();
+                d.diff = (
+                    event.offset_x() as f64 - d.to.0,
+                    event.offset_y() as f64 - d.to.1,
+                );
+                d.to = (event.offset_x() as f64, event.offset_y() as f64);
+                dnd.set(d);
+
                 if d.dragging {
                     let state = app.tool_state.get();
                     match state {
@@ -159,10 +166,7 @@ impl App {
                             if let Some(i) = app.selected_figure.get() {
                                 let figs = app.paint.get_renderer().borrow();
                                 let r = figs.get(i).unwrap();
-                                r.move_to(
-                                    event.offset_x() as f64 - d.from.0,
-                                    event.offset_y() as f64 - d.from.1,
-                                );
+                                r.move_to(d.diff.0, d.diff.1);
 
                                 app.paint.render();
                             }

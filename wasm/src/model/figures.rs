@@ -77,6 +77,7 @@ impl TFigure for Rectangle {
     }
 
     fn move_to(&self, x: f64, y: f64) {
-        self.from.set((x, y));
+        let (ox, oy) = self.from.get();
+        self.from.set((ox + x, oy + y));
     }
 }
