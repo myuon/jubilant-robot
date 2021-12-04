@@ -10,7 +10,6 @@ extern "C" {
 
 use components::Button;
 use js_sys::Array;
-use model::figures::TCanvas;
 use model::figures::TDrawingContext;
 use model::figures::TFigure;
 use model::renderer::Renderer;
@@ -59,12 +58,13 @@ impl TDrawingContext for CanvasRenderingContext2d {
     }
 }
 
-pub struct PaintingCanvas {
+pub struct UI {
     canvas: HtmlCanvasElement,
     context: CanvasRenderingContext2d,
+    renderer: Renderer,
 }
 
-impl PaintingCanvas {
+impl UI {
     pub fn create_by_element_id(element_id: &str) -> Result<Self, JsValue> {
         let document = web_sys::window().unwrap().document().unwrap();
         let canvas = document.get_element_by_id(element_id).unwrap();
@@ -76,11 +76,13 @@ impl PaintingCanvas {
             .unwrap()
             .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
 
-        Ok(PaintingCanvas { canvas, context })
+        Ok(UI {
+            canvas,
+            context,
+            renderer: Renderer::new(),
+        })
     }
-}
 
-impl TCanvas for PaintingCanvas {
     fn clear(&self) {
         self.context.clear_rect(
             0.0,
@@ -93,28 +95,26 @@ impl TCanvas for PaintingCanvas {
 
 #[derive(Clone)]
 struct App {
-    control_canvas: Rc<PaintingCanvas>,
-    paint_canvas: Rc<PaintingCanvas>,
-    renderer: Rc<Renderer>,
+    control: Rc<UI>,
+    paint: Rc<UI>,
     dnd_event: Rc<Cell<DragAndDropEvent>>,
 }
 
 impl App {
-    fn new(control_canvas: Rc<PaintingCanvas>, paint_canvas: Rc<PaintingCanvas>) -> Self {
+    fn new(control_canvas: Rc<UI>, paint_canvas: Rc<UI>) -> Self {
         App {
-            control_canvas,
-            paint_canvas,
-            renderer: Rc::new(Renderer::new()),
+            control: control_canvas,
+            paint: paint_canvas,
             dnd_event: Rc::new(Cell::new(DragAndDropEvent::default())),
         }
     }
 
     fn initialize(&self) {
-        self.renderer.register(Button::new(
+        self.control.renderer.register(Button::new(
             "CLEAR".to_string(),
             Rectangle::new((0.0, 0.0), (100.0, 40.0)),
         ));
-        self.renderer.render(&self.control_canvas.context);
+        self.control.renderer.render(&self.control.context);
     }
 
     fn register_mousedown(&self) -> Result<(), JsValue> {
@@ -127,7 +127,7 @@ impl App {
             d.dragging = true;
             dnd.set(d);
         }) as Box<dyn FnMut(_)>);
-        self.control_canvas
+        self.control
             .canvas
             .add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())?;
         closure.forget();
@@ -137,7 +137,7 @@ impl App {
 
     fn register_mousemove(&self) -> Result<(), JsValue> {
         let dnd = self.dnd_event.clone();
-        let control_canvas = self.control_canvas.clone();
+        let control_canvas = self.control.clone();
         let closure = {
             let control_canvas = control_canvas.clone();
             Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
@@ -153,7 +153,7 @@ impl App {
                 }
             }) as Box<dyn FnMut(_)>)
         };
-        self.control_canvas
+        self.control
             .canvas
             .add_event_listener_with_callback("mousemove", closure.as_ref().unchecked_ref())?;
         closure.forget();
@@ -173,17 +173,19 @@ impl App {
 
                 // DnDで矩形を登録する
                 let rect = Rectangle::new(d.from, d.to);
-                app.renderer.register(rect);
+                app.paint.renderer.register(rect);
+                app.paint.clear();
+                app.paint.renderer.render(&app.paint.context);
+
+                app.paint.renderer.handle_mouse_up(MouseUpEvent {
+                    at: (event.offset_x() as f64, event.offset_y() as f64),
+                });
 
                 // イベントが確定したらcontrol layerは消去する
-                app.control_canvas.clear();
-
-                app.renderer.handle_mouse_up(MouseUpEvent {
-                    at: (event.offset_x() as f64, event.offset_y() as f64),
-                })
+                app.control.clear();
             }) as Box<dyn FnMut(_)>)
         };
-        self.control_canvas
+        self.control
             .canvas
             .add_event_listener_with_callback("mouseup", closure.as_ref().unchecked_ref())?;
         closure.forget();
@@ -196,8 +198,8 @@ impl App {
 pub fn start() -> Result<(), JsValue> {
     console_log!("Application initialized.");
 
-    let control_canvas = Rc::new(PaintingCanvas::create_by_element_id("control-canvas")?);
-    let paint_canvas = Rc::new(PaintingCanvas::create_by_element_id("paint-canvas")?);
+    let control_canvas = Rc::new(UI::create_by_element_id("control-canvas")?);
+    let paint_canvas = Rc::new(UI::create_by_element_id("paint-canvas")?);
 
     let app = App::new(control_canvas, paint_canvas);
     app.initialize();

@@ -9,10 +9,6 @@ pub trait TDrawingContext {
     fn reset_stroke(&self);
 }
 
-pub trait TCanvas {
-    fn clear(&self);
-}
-
 pub trait TFigure: std::fmt::Debug {
     fn contains(&self, x: f64, y: f64) -> bool;
     fn render(&self, context: &dyn TDrawingContext);
